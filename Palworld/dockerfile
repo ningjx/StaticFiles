@@ -1,0 +1,11 @@
+FROM cm2network/steamcmd as steamcmd
+EXPOSE 8211/udp
+USER steam
+WORKDIR /home/steam/steamcmd
+ENV TZ=Asia/Shanghai
+RUN mkdir -p /home/steam/Steam/steamapps/common/PalServer
+RUN echo "./steamcmd.sh +login anonymous +app_update 2394010 validate +quit" > /home/steam/steamcmd/update.sh
+RUN echo "cp -f /home/steam/Steam/steamapps/common/PalServer/DefaultPalWorldSettings.ini /home/steam/steamapps/common/PalServer/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini" >> /home/steam/steamcmd/update.sh
+RUN echo "~/Steam/steamapps/common/PalServer/PalServer.sh port=8211 players=32 -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS" >> /home/steam/steamcmd/update.sh
+RUN chmod +x /home/steam/steamcmd/update.sh
+ENTRYPOINT /home/steam/steamcmd/update.sh
