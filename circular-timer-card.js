@@ -8,7 +8,7 @@ class CircularTimerCard extends LitElement {
     super();
 
     // Defaults
-    this._bins = 36;
+    this._bins = 60;
     this._padAngle = 1;
     this._cornerRadius = 4;
     this._defaultTimerFill = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
@@ -21,7 +21,7 @@ class CircularTimerCard extends LitElement {
     this._icon = "use_entity_icon";
     this._primaryInfo = "name";
     this._secondaryInfo = "timer";
-    this._direction = "countdown";
+    this._direction = "countup";
     this._tapAction = "toggle";
     this._holdAction = "more_info";
     this._doubleTapAction = "cancel";
@@ -31,21 +31,21 @@ class CircularTimerCard extends LitElement {
 
     // To update card every half second
     this._timeUpdater = 1;
-    setInterval(() => {this._timeUpdater++;}, 500);
+    setInterval(() => {this._timeUpdater++;}, 1000);
 
     // Event listener bindings (https://developers.home-assistant.io/blog/2023/07/07/action-event-custom-cards/)
 
-    this.addEventListener("click", this._tap);
+    //this.addEventListener("click", this._tap);
 
     this._mouseIsDown = false;
     this._mouseIsDownTriggered = false;
     this._doubleClickTriggered = false;
-    this.addEventListener("mousedown", this._mousedown);
-    this.addEventListener("touchstart", this._mousedown);
-    this.addEventListener("mouseup", this._mouseup);
-    this.addEventListener("touchend", this._mouseup);
+    //this.addEventListener("mousedown", this._mousedown);
+    //this.addEventListener("touchstart", this._mousedown);
+    //this.addEventListener("mouseup", this._mouseup);
+    //this.addEventListener("touchend", this._mouseup);
 
-    this.addEventListener("dblclick", this._double_tap);
+    //this.addEventListener("dblclick", this._double_tap);
 
     ////
   }
@@ -63,11 +63,6 @@ class CircularTimerCard extends LitElement {
       throw new Error("You need to provide entity!");
     }
 
-    var domain = config.entity.split(".")[0];
-    if (domain !== "timer") {
-      throw new Error("Provided entity is not a timer!");
-    }
-
     // Define the action config
     this._actionConfig = {
       entity: config.entity,
@@ -80,6 +75,9 @@ class CircularTimerCard extends LitElement {
     if (config.layout) {
       if (config.layout === "minimal") {
         this._layout = "minimal";
+      }
+      else if(config.layout === "circle"){
+        this._layout = "circle";
       }
     }
 
@@ -171,8 +169,12 @@ class CircularTimerCard extends LitElement {
 
   render() {
 
-    if (!this.hass || !this._config) {
-      return html``;
+    if (!this.hass) {
+      throw new Error("hass not exist");
+    }
+
+    if (!this._config) {
+      throw new Error("config not exist");
     }
 
     this._stateObj = this.hass.states[this._config.entity];
@@ -195,40 +197,21 @@ class CircularTimerCard extends LitElement {
       icon = this._icon;
     }
 
-    var a = this._stateObj.attributes.duration.split(':');
+    var a = this._stateObj.state.split(':');
     var d_sec = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]);
-    var rem_sec;
-    if (this._stateObj.state == "active") {
-      if (this._direction == "countup") {
-        rem_sec = d_sec - ((Date.parse(this._stateObj.attributes.finishes_at) - new Date()) / 1000);
-      } else {
-        rem_sec = ((Date.parse(this._stateObj.attributes.finishes_at) - new Date()) / 1000);
-      }
-    } else {
-      if (this._stateObj.state == "paused") {
-        var a1 = this._stateObj.attributes.remaining.split(':');
-        if (this._direction == "countup") {
-          rem_sec = d_sec - ((+a1[0]) * 60 * 60 + (+a1[1]) * 60 + (+a1[2]));
-        } else {
-          rem_sec = (+a1[0]) * 60 * 60 + (+a1[1]) * 60 + (+a1[2]);
-        }
-      } else {
-        rem_sec = d_sec;
-      }
-    }
-    var proc = rem_sec / d_sec;
+    var proc = (+a[2]) / 60;
 
     var limitBin = Math.floor(this._bins * proc);
     var colorData = this._generateArcColorData(limitBin);
     var textColor = this._getTextColor(proc);
     
-    var display_rem_sec = this._getTimeString(rem_sec);
+    var display_d_sec = this._getTimeString(d_sec);
     
     var primary_info;
     if (this._primaryInfo == "none") {
       primary_info = '';
     } else if (this._primaryInfo == "timer") {
-      primary_info = display_rem_sec;
+      primary_info = display_d_sec;
     } else {
       primary_info = this._name;
     }
@@ -239,7 +222,7 @@ class CircularTimerCard extends LitElement {
     } else if (this._secondaryInfo == "name") {
       secondary_info = this._name;
     } else {
-      secondary_info = display_rem_sec;
+      secondary_info = display_d_sec;
     }
 
     if (this._layout === "minimal") {
