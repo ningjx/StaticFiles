@@ -64,8 +64,8 @@ class CircularTimerCard extends LitElement {
     }
 
     var domain = config.entity.split(".")[0];
-    if (domain !== "timer" || domain !== "time") {
-      throw new Error("Provided entity is not a time or timer!");
+    if (domain !== "timer") {
+      throw new Error("Provided entity is not a timer!");
     }
 
     // Define the action config
