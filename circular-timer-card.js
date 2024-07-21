@@ -56,7 +56,8 @@ class CircularTimerCard extends LitElement {
     //this.addEventListener("touchend", this._mouseup);
 
     //this.addEventListener("dblclick", this._double_tap);
-
+    this.d_sec = 0;
+    this.proc = 0;
     ////
   }
 
@@ -203,7 +204,9 @@ class CircularTimerCard extends LitElement {
     var icon;
     var icon_style;
     if (this._icon == "use_entity_icon") {
-      icon = this._stateObj.attributes.icon;
+      console.log("iconiconicon", this._stateObj.attributes.icon);
+      if (this._stateObj.attributes.icon) icon = this._stateObj.attributes.icon;
+      else icon = "mdi:timer";
     } else if (this._icon == "none") {
       icon = "";
       icon_style = "display:none;";
@@ -211,16 +214,23 @@ class CircularTimerCard extends LitElement {
       icon = this._icon;
     }
 
-    var a = this._stateObj.state.split(":");
-    var d_sec = +a[0] * 60 * 60 + +a[1] * 60 + +a[2];
-    var proc = +a[2] / 60;
+    if (this._stateObj.state === "on") {
+      this._fetchHistory(this._config.entity).then((data) => {
+        var onTime = this._getEntityOnTime(data);
+        var timeGap = this._calculateTimeDifference(onTime).split(":");
+        this.d_sec = +timeGap[0] * 60 * 60 + +timeGap[1] * 60 + +timeGap[2];
+        this.proc = +timeGap[2] / this._bins;
+      });
+    } else {
+      //关闭开关后计时器归零
+      this.proc = this.d_sec = 0;
+    }
 
-    var limitBin = Math.floor(this._bins * proc);
+    var limitBin = Math.floor(this._bins * this.proc);
     var colorData = this._generateArcColorData(limitBin);
-    var textColor = this._getTextColor(proc);
+    var textColor = this._getTextColor(this.proc);
 
-    var display_d_sec = this._getTimeString(d_sec);
-
+    var display_d_sec = this._getTimeString(this.d_sec);
     var primary_info;
     if (this._primaryInfo == "none") {
       primary_info = "";
@@ -250,10 +260,13 @@ class CircularTimerCard extends LitElement {
               ></ha-icon>
             </div>
             <div class="info">
-              <span class="primary" style="${`color: ${textColor};"`};">${primary_info}</span>
+              <span class="primary" style="${`color: ${textColor};"`};"
+                >${primary_info}</span
+              >
               <span
                 class="secondary"
-                style="font-size:${this._secondaryInfoSize};color: ${textColor};"
+                style="font-size:${this
+                  ._secondaryInfoSize};color: ${textColor};"
                 >${secondary_info}</span
               >
             </div>
@@ -261,11 +274,17 @@ class CircularTimerCard extends LitElement {
           <svg viewBox="0 0 100 10.2">
             <g transform="translate(0,0)">
               ${repeat(
-        this._barData,
-        (d) => d.id,
-        (d, index) =>
-          svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${d.height} rx="1" fill=${this._getBinColor(colorData,index,limitBin)} />`
-      )}
+                this._barData,
+                (d) => d.id,
+                (d, index) =>
+                  svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${
+                    d.height
+                  } rx="1" fill=${this._getBinColor(
+                    colorData,
+                    index,
+                    limitBin
+                  )} />`
+              )}
             </g>
           </svg>
         </ha-card>
@@ -276,11 +295,15 @@ class CircularTimerCard extends LitElement {
           <svg viewBox="0 0 100 100">
             <g transform="translate(50,50)">
               ${repeat(
-        this._arcData,
-        (d) => d.id,
-        (d, index) =>
-          svg`<path class="arc" d=${d.arc} fill=${this._getBinColor(colorData,index,limitBin)} />`
-      )}
+                this._arcData,
+                (d) => d.id,
+                (d, index) =>
+                  svg`<path class="arc" d=${d.arc} fill=${this._getBinColor(
+                    colorData,
+                    index,
+                    limitBin
+                  )} />`
+              )}
             </g>
             <g transform="translate(50,45)">
               <text
@@ -355,32 +378,16 @@ class CircularTimerCard extends LitElement {
   }
 
   _getTextColor(proc) {
-    if (!this._config.action_entity) {
-      if (this._colorState) {
-        return this._colorScale(proc);
-      } else {
-        return this._stateColor;
-      }
-    } else {
-      var stateObj = this.hass.states[this._config.action_entity];
-      if (stateObj.state == "on") return this._colorScale(proc);
-      else return "#909497";
-    }
+    if (this._stateObj.state == "on") return this._colorScale(proc);
+    else return "#909497";
   }
 
   _getBinColor(colorData, index, limitBin) {
-    if (!this._config.action_entity) {
+    if (this._stateObj.state == "on") {
       return colorData[index];
     } else {
-      var stateObj = this.hass.states[this._config.action_entity];
-      if (stateObj.state == "on") {
-        return colorData[index];
-      } else {
-        if (index < limitBin)
-          return "#909497";
-        else
-          return colorData[index];
-      }
+      if (index < limitBin) return "#909497";
+      else return colorData[index];
     }
   }
 
@@ -401,17 +408,9 @@ class CircularTimerCard extends LitElement {
   }
 
   _toggle_func() {
-    if (this._config.action_entity) {
-      this.hass.callService("switch", "toggle", {
-        entity_id: this._config.action_entity,
-      });
-    } else {
-      const stateObj = this.hass.states[this._config.entity];
-      const service = stateObj.state === "active" ? "pause" : "start";
-      this.hass.callService("timer", service, {
-        entity_id: this._config.entity,
-      });
-    }
+    this.hass.callService("switch", "toggle", {
+      entity_id: this._config.entity,
+    });
   }
 
   _cancel_func() {
@@ -484,6 +483,34 @@ class CircularTimerCard extends LitElement {
       this._mouseIsDown = false;
       this._mouseIsDownTriggered = false;
     }, 100);
+  }
+
+  async _fetchHistory(entity) {
+    const response = await fetch(
+      `/api/history/period?filter_entity_id=${entity}`,
+      {
+        headers: {
+          Authorization: `Bearer ${this._config.token}`,
+        },
+      }
+    );
+    return response.json();
+  }
+  _getEntityOnTime(history) {
+    var data = history[0];
+    if (data[data.length - 1].state === "on") {
+      return new Date(data[data.length - 1].last_changed);
+    } else return null;
+  }
+  _calculateTimeDifference(lastOnTime) {
+    if (!lastOnTime) return "0:0:0";
+    const now = new Date();
+    const diff = now - lastOnTime;
+    if (diff < 0) diff = 0;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    return `${hours}:${minutes}:${seconds}`;
   }
 
   static get styles() {
