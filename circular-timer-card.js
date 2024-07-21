@@ -250,10 +250,10 @@ class CircularTimerCard extends LitElement {
               ></ha-icon>
             </div>
             <div class="info">
-              <span class="primary">${primary_info}</span>
+              <span class="primary" style="${`color: ${textColor};"`};">${primary_info}</span>
               <span
                 class="secondary"
-                style="font-size:${this._secondaryInfoSize};"
+                style="font-size:${this._secondaryInfoSize};color: ${textColor};"
                 >${secondary_info}</span
               >
             </div>
@@ -264,7 +264,7 @@ class CircularTimerCard extends LitElement {
         this._barData,
         (d) => d.id,
         (d, index) =>
-          svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${d.height} rx="1" fill=${colorData[index]} />`
+          svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${d.height} rx="1" fill=${this._getBinColor(colorData,index,limitBin)} />`
       )}
             </g>
           </svg>
@@ -279,11 +279,7 @@ class CircularTimerCard extends LitElement {
         this._arcData,
         (d) => d.id,
         (d, index) =>
-          svg`<path class="arc" d=${d.arc} fill=${this._getBinColor(
-            colorData,
-            index,
-            limitBin
-          )} />`
+          svg`<path class="arc" d=${d.arc} fill=${this._getBinColor(colorData,index,limitBin)} />`
       )}
             </g>
             <g transform="translate(50,45)">
