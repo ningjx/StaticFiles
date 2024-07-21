@@ -1,9 +1,13 @@
-import { html, svg, css, LitElement } from "https://cdn.jsdelivr.net/gh/lit/dist@3/core/lit-core.min.js";
+import {
+  html,
+  svg,
+  css,
+  LitElement,
+} from "https://cdn.jsdelivr.net/gh/lit/dist@3/core/lit-core.min.js";
 import { repeat } from "https://cdn.jsdelivr.net/gh/lit/dist@3.0.0/all/lit-all.min.js";
 import * as d3 from "https://cdn.skypack.dev/d3@7";
 
 class CircularTimerCard extends LitElement {
-
   constructor() {
     super();
 
@@ -11,7 +15,9 @@ class CircularTimerCard extends LitElement {
     this._bins = 60;
     this._padAngle = 1;
     this._cornerRadius = 4;
-    this._defaultTimerFill = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
+    this._defaultTimerFill = getComputedStyle(
+      document.documentElement
+    ).getPropertyValue("--primary-color");
     this._gradientColors = [this._defaultTimerFill, this._defaultTimerFill];
     this._defaultTimerEmptyFill = "#fdfdfd00";
     this._secondaryInfoSize;
@@ -27,11 +33,15 @@ class CircularTimerCard extends LitElement {
     this._doubleTapAction = "toggle";
 
     this._colorState = false;
-    this._stateColor = getComputedStyle(document.documentElement).getPropertyValue("--primary-text-color");
+    this._stateColor = getComputedStyle(
+      document.documentElement
+    ).getPropertyValue("--primary-text-color");
 
     // To update card every half second
     this._timeUpdater = 1;
-    setInterval(() => { this._timeUpdater++; }, 1000);
+    setInterval(() => {
+      this._timeUpdater++;
+    }, 1000);
 
     // Event listener bindings (https://developers.home-assistant.io/blog/2023/07/07/action-event-custom-cards/)
 
@@ -53,12 +63,11 @@ class CircularTimerCard extends LitElement {
   static get properties() {
     return {
       _config: {},
-      _timeUpdater: {}
+      _timeUpdater: {},
     };
   }
 
   setConfig(config) {
-
     if (!config.entity) {
       throw new Error("You need to provide entity!");
     }
@@ -69,14 +78,13 @@ class CircularTimerCard extends LitElement {
       hold_action: {
         action: "more-info",
         start_listening: true,
-      }
+      },
     };
 
     if (config.layout) {
       if (config.layout === "minimal") {
         this._layout = "minimal";
-      }
-      else if (config.layout === "circle") {
+      } else if (config.layout === "circle") {
         this._layout = "circle";
       }
     }
@@ -152,12 +160,19 @@ class CircularTimerCard extends LitElement {
       this._doubleTapAction = config.double_tap_action;
     }
 
-    this._colorScale = d3.scaleSequential(d3.interpolateRgbBasis(this._gradientColors));
-    this._arc = d3.arc()
+    this._colorScale = d3.scaleSequential(
+      d3.interpolateRgbBasis(this._gradientColors)
+    );
+    this._arc = d3
+      .arc()
       .innerRadius(30)
       .outerRadius(48)
-      .startAngle((d) => { return this._toRadians(d.start); })
-      .endAngle((d) => { return this._toRadians(d.end); })
+      .startAngle((d) => {
+        return this._toRadians(d.start);
+      })
+      .endAngle((d) => {
+        return this._toRadians(d.end);
+      })
       .cornerRadius(this._cornerRadius)
       .padAngle(this._toRadians(this._padAngle));
 
@@ -168,7 +183,6 @@ class CircularTimerCard extends LitElement {
   }
 
   render() {
-
     if (!this.hass) {
       throw new Error("hass not exist");
     }
@@ -197,9 +211,9 @@ class CircularTimerCard extends LitElement {
       icon = this._icon;
     }
 
-    var a = this._stateObj.state.split(':');
-    var d_sec = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]);
-    var proc = (+a[2]) / 60;
+    var a = this._stateObj.state.split(":");
+    var d_sec = +a[0] * 60 * 60 + +a[1] * 60 + +a[2];
+    var proc = +a[2] / 60;
 
     var limitBin = Math.floor(this._bins * proc);
     var colorData = this._generateArcColorData(limitBin);
@@ -209,7 +223,7 @@ class CircularTimerCard extends LitElement {
 
     var primary_info;
     if (this._primaryInfo == "none") {
-      primary_info = '';
+      primary_info = "";
     } else if (this._primaryInfo == "timer") {
       primary_info = display_d_sec;
     } else {
@@ -218,7 +232,7 @@ class CircularTimerCard extends LitElement {
 
     var secondary_info;
     if (this._secondaryInfo == "none") {
-      secondary_info = '';
+      secondary_info = "";
     } else if (this._secondaryInfo == "name") {
       secondary_info = this._name;
     } else {
@@ -226,73 +240,101 @@ class CircularTimerCard extends LitElement {
     }
 
     if (this._layout === "minimal") {
-
       return html`
-      <ha-card>
-        <div class="header">
-          <div class="icon" style="${icon_style}">
-            <ha-icon icon="${icon}" style="${`color: ${textColor};"`};"></ha-icon>
-          </div> 
-          <div class="info">
-            <span class="primary">${primary_info}</span>
-            <span class="secondary" style="font-size:${this._secondaryInfoSize};">${secondary_info}</span>
+        <ha-card>
+          <div class="header">
+            <div class="icon" style="${icon_style}">
+              <ha-icon
+                icon="${icon}"
+                style="${`color: ${textColor};"`};"
+              ></ha-icon>
+            </div>
+            <div class="info">
+              <span class="primary">${primary_info}</span>
+              <span
+                class="secondary"
+                style="font-size:${this._secondaryInfoSize};"
+                >${secondary_info}</span
+              >
+            </div>
           </div>
-        </div>
-        <svg viewBox="0 0 100 10.2">
-          <g transform="translate(0,0)">
-            ${repeat(
+          <svg viewBox="0 0 100 10.2">
+            <g transform="translate(0,0)">
+              ${repeat(
         this._barData,
         (d) => d.id,
-        (d, index) => svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${d.height} rx="1" fill=${colorData[index]} />`
+        (d, index) =>
+          svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${d.height} rx="1" fill=${colorData[index]} />`
       )}
-          </g>
-        </svg>
-      </ha-card>
-    `;
-
+            </g>
+          </svg>
+        </ha-card>
+      `;
     } else {
-
       return html`
-      <ha-card>
-        <svg viewBox="0 0 100 100">
-          <g transform="translate(50,50)">
-            ${repeat(
+        <ha-card>
+          <svg viewBox="0 0 100 100">
+            <g transform="translate(50,50)">
+              ${repeat(
         this._arcData,
         (d) => d.id,
-        (d, index) => svg`<path class="arc" d=${d.arc} fill=${colorData[index]} />`
+        (d, index) =>
+          svg`<path class="arc" d=${d.arc} fill=${this._getBinColor(
+            colorData,
+            index,
+            limitBin
+          )} />`
       )}
-          </g>
-          <g transform="translate(50,50)">
-            <text id="countdown" text-anchor="middle" dominant-baseline="central" fill=${textColor}>${secondary_info}</text>
-          </g>
-          <g transform="translate(50,62)">
-            <text id="timer-name" text-anchor="middle" dominant-baseline="central" fill=${textColor} style="font-size:${this._secondaryInfoSize};">${primary_info}</text>
-          </g>
-        </svg>
-      </ha-card>
-    `;
-
+            </g>
+            <g transform="translate(50,45)">
+              <text
+                id="countdown"
+                text-anchor="middle"
+                dominant-baseline="central"
+                fill=${textColor}
+              >
+                ${secondary_info}
+              </text>
+            </g>
+            <g transform="translate(50,55)">
+              <text
+                id="timer-name"
+                text-anchor="middle"
+                dominant-baseline="central"
+                fill=${textColor}
+                style="font-size:${this._secondaryInfoSize};"
+              >
+                ${primary_info}
+              </text>
+            </g>
+          </svg>
+        </ha-card>
+      `;
     }
   }
 
   _generateArcData() {
     var data = [];
     for (var i = 0; i < this._bins; i++) {
-      data.push({ arc: this._arc({ start: i * this._seqmentSize, end: (i + 1) * this._seqmentSize }), id: i });
+      data.push({
+        arc: this._arc({
+          start: i * this._seqmentSize,
+          end: (i + 1) * this._seqmentSize,
+        }),
+        id: i,
+      });
     }
     return data;
   }
 
   _generateBarData() {
-
     var pad = 1;
 
-    var width = ((100 + pad) / this._bins) - pad;
+    var width = (100 + pad) / this._bins - pad;
     var height = 10;
 
     var data = [];
     for (var i = 0; i < this._bins; i++) {
-
       var x = i * (width + pad);
       var y = 0;
 
@@ -317,19 +359,32 @@ class CircularTimerCard extends LitElement {
   }
 
   _getTextColor(proc) {
-    if(!this._config.action_entity){
+    if (!this._config.action_entity) {
       if (this._colorState) {
         return this._colorScale(proc);
       } else {
         return this._stateColor;
       }
+    } else {
+      var stateObj = this.hass.states[this._config.action_entity];
+      if (stateObj.state == "on") return this._colorScale(proc);
+      else return "#909497";
     }
-    else{
-        var stateObj = this.hass.states[this._config.action_entity];
-        if(stateObj.state == "on")
-          return this._colorScale(proc);
+  }
+
+  _getBinColor(colorData, index, limitBin) {
+    if (!this._config.action_entity) {
+      return colorData[index];
+    } else {
+      var stateObj = this.hass.states[this._config.action_entity];
+      if (stateObj.state == "on") {
+        return colorData[index];
+      } else {
+        if (index < limitBin)
+          return "#909497";
         else
-          return  "#CACFD2";
+          return colorData[index];
+      }
     }
   }
 
@@ -338,31 +393,36 @@ class CircularTimerCard extends LitElement {
   }
 
   _getTimeString(s) {
-
     var h = Math.floor(s / 3600);
-    var m = Math.floor(s % 3600 / 60);
-    var s = Math.floor(s % 3600 % 60);
+    var m = Math.floor((s % 3600) / 60);
+    var s = Math.floor((s % 3600) % 60);
 
-    var hours = h.toString().padStart(2, '0');
-    var minutes = m.toString().padStart(2, '0');
-    var seconds = s.toString().padStart(2, '0');
+    var hours = h.toString().padStart(2, "0");
+    var minutes = m.toString().padStart(2, "0");
+    var seconds = s.toString().padStart(2, "0");
 
-    return `${hours}:${minutes}:${seconds}`
+    return `${hours}:${minutes}:${seconds}`;
   }
 
   _toggle_func() {
     if (this._config.action_entity) {
-      this.hass.callService("switch", "toggle", { entity_id: this._config.action_entity });
+      this.hass.callService("switch", "toggle", {
+        entity_id: this._config.action_entity,
+      });
     } else {
       const stateObj = this.hass.states[this._config.entity];
       const service = stateObj.state === "active" ? "pause" : "start";
-      this.hass.callService("timer", service, { entity_id: this._config.entity });
+      this.hass.callService("timer", service, {
+        entity_id: this._config.entity,
+      });
     }
   }
 
   _cancel_func() {
     const stateObj = this.hass.states[this._config.entity];
-    this.hass.callService("timer", "cancel", { entity_id: this._config.entity });
+    this.hass.callService("timer", "cancel", {
+      entity_id: this._config.entity,
+    });
   }
 
   _moreInfo_func() {
@@ -431,9 +491,7 @@ class CircularTimerCard extends LitElement {
   }
 
   static get styles() {
-
     return css`
-
       ha-card {
         padding: 10px;
       }
@@ -444,7 +502,7 @@ class CircularTimerCard extends LitElement {
       rect:hover {
         opacity: 0.85;
       }
-      #countdown  {
+      #countdown {
         font-weight: 600;
         font-size: 85%;
       }
@@ -472,7 +530,6 @@ class CircularTimerCard extends LitElement {
       }
 
       .info {
-
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -500,7 +557,6 @@ class CircularTimerCard extends LitElement {
       }
 
       .icon {
-
         width: 42px;
         height: 42px;
 
@@ -512,12 +568,8 @@ class CircularTimerCard extends LitElement {
 
         margin-right: 10px;
 
-
         background: rgba(34, 34, 34, 0.05);
         border-radius: 500px;
-
-        
-
       }
     `;
   }
@@ -527,5 +579,5 @@ customElements.define("circular-timer-card", CircularTimerCard);
 
 console.info(
   `%c circular-timer-card | Version 1.1 `,
-  "color: white; font-weight: bold; background: #FF4F00",
+  "color: white; font-weight: bold; background: #FF4F00"
 );
