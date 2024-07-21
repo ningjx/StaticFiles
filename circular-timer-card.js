@@ -16,7 +16,7 @@ class CircularTimerCard extends LitElement {
     this._defaultTimerEmptyFill = "#fdfdfd00";
     this._secondaryInfoSize;
     this._layout = "circle";
-    
+
     this._name = "use_entity_friendly_name";
     this._icon = "use_entity_icon";
     this._primaryInfo = "name";
@@ -24,18 +24,18 @@ class CircularTimerCard extends LitElement {
     this._direction = "countup";
     this._tapAction = "toggle";
     this._holdAction = "more_info";
-    this._doubleTapAction = "cancel";
+    this._doubleTapAction = "toggle";
 
     this._colorState = false;
     this._stateColor = getComputedStyle(document.documentElement).getPropertyValue("--primary-text-color");
 
     // To update card every half second
     this._timeUpdater = 1;
-    setInterval(() => {this._timeUpdater++;}, 1000);
+    setInterval(() => { this._timeUpdater++; }, 1000);
 
     // Event listener bindings (https://developers.home-assistant.io/blog/2023/07/07/action-event-custom-cards/)
 
-    //this.addEventListener("click", this._tap);
+    this.addEventListener("click", this._tap);
 
     this._mouseIsDown = false;
     this._mouseIsDownTriggered = false;
@@ -49,7 +49,7 @@ class CircularTimerCard extends LitElement {
 
     ////
   }
-  
+
   static get properties() {
     return {
       _config: {},
@@ -76,7 +76,7 @@ class CircularTimerCard extends LitElement {
       if (config.layout === "minimal") {
         this._layout = "minimal";
       }
-      else if(config.layout === "circle"){
+      else if (config.layout === "circle") {
         this._layout = "circle";
       }
     }
@@ -135,11 +135,11 @@ class CircularTimerCard extends LitElement {
     if (config.secondary_info) {
       this._secondaryInfo = config.secondary_info;
     }
-    
+
     if (config.direction) {
       this._direction = config.direction;
     }
-    
+
     if (config.tap_action) {
       this._tapAction = config.tap_action;
     }
@@ -151,13 +151,13 @@ class CircularTimerCard extends LitElement {
     if (config.double_tap_action) {
       this._doubleTapAction = config.double_tap_action;
     }
-    
+
     this._colorScale = d3.scaleSequential(d3.interpolateRgbBasis(this._gradientColors));
     this._arc = d3.arc()
       .innerRadius(30)
       .outerRadius(48)
-      .startAngle( (d)  => { return this._toRadians(d.start); })
-      .endAngle( (d)  => { return this._toRadians(d.end); })
+      .startAngle((d) => { return this._toRadians(d.start); })
+      .endAngle((d) => { return this._toRadians(d.end); })
       .cornerRadius(this._cornerRadius)
       .padAngle(this._toRadians(this._padAngle));
 
@@ -190,7 +190,7 @@ class CircularTimerCard extends LitElement {
     var icon_style;
     if (this._icon == "use_entity_icon") {
       icon = this._stateObj.attributes.icon;
-    }  else if (this._icon == "none") {
+    } else if (this._icon == "none") {
       icon = "";
       icon_style = "display:none;";
     } else {
@@ -204,9 +204,9 @@ class CircularTimerCard extends LitElement {
     var limitBin = Math.floor(this._bins * proc);
     var colorData = this._generateArcColorData(limitBin);
     var textColor = this._getTextColor(proc);
-    
+
     var display_d_sec = this._getTimeString(d_sec);
-    
+
     var primary_info;
     if (this._primaryInfo == "none") {
       primary_info = '';
@@ -215,7 +215,7 @@ class CircularTimerCard extends LitElement {
     } else {
       primary_info = this._name;
     }
-      
+
     var secondary_info;
     if (this._secondaryInfo == "none") {
       secondary_info = '';
@@ -231,7 +231,7 @@ class CircularTimerCard extends LitElement {
       <ha-card>
         <div class="header">
           <div class="icon" style="${icon_style}">
-            <ha-icon icon="${icon}" style="${this._colorState ? `color: ${textColor};"` : `""`};"></ha-icon>
+            <ha-icon icon="${icon}" style="${`color: ${textColor};"`};"></ha-icon>
           </div> 
           <div class="info">
             <span class="primary">${primary_info}</span>
@@ -241,10 +241,10 @@ class CircularTimerCard extends LitElement {
         <svg viewBox="0 0 100 10.2">
           <g transform="translate(0,0)">
             ${repeat(
-              this._barData,
-              (d) => d.id,
-              (d, index) => svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${d.height} rx="1" fill=${colorData[index]} />`
-            )}
+        this._barData,
+        (d) => d.id,
+        (d, index) => svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${d.height} rx="1" fill=${colorData[index]} />`
+      )}
           </g>
         </svg>
       </ha-card>
@@ -257,16 +257,16 @@ class CircularTimerCard extends LitElement {
         <svg viewBox="0 0 100 100">
           <g transform="translate(50,50)">
             ${repeat(
-              this._arcData,
-              (d) => d.id,
-              (d, index) => svg`<path class="arc" d=${d.arc} fill=${colorData[index]} />`
-            )}
+        this._arcData,
+        (d) => d.id,
+        (d, index) => svg`<path class="arc" d=${d.arc} fill=${colorData[index]} />`
+      )}
           </g>
           <g transform="translate(50,50)">
             <text id="countdown" text-anchor="middle" dominant-baseline="central" fill=${textColor}>${secondary_info}</text>
           </g>
           <g transform="translate(50,62)">
-            <text id="timer-name" text-anchor="middle" dominant-baseline="central" fill="var(--secondary-text-color)" style="font-size:${this._secondaryInfoSize};">${primary_info}</text>
+            <text id="timer-name" text-anchor="middle" dominant-baseline="central" fill=${textColor} style="font-size:${this._secondaryInfoSize};">${primary_info}</text>
           </g>
         </svg>
       </ha-card>
@@ -277,8 +277,8 @@ class CircularTimerCard extends LitElement {
 
   _generateArcData() {
     var data = [];
-    for (var i = 0; i < this._bins; i++){
-      data.push({arc: this._arc({start: i*this._seqmentSize, end: (i+1) * this._seqmentSize}), id: i});
+    for (var i = 0; i < this._bins; i++) {
+      data.push({ arc: this._arc({ start: i * this._seqmentSize, end: (i + 1) * this._seqmentSize }), id: i });
     }
     return data;
   }
@@ -286,41 +286,50 @@ class CircularTimerCard extends LitElement {
   _generateBarData() {
 
     var pad = 1;
-    
-    var width = ((100 + pad ) / this._bins) - pad;
+
+    var width = ((100 + pad) / this._bins) - pad;
     var height = 10;
 
     var data = [];
-    for (var i = 0; i < this._bins; i++){
+    for (var i = 0; i < this._bins; i++) {
 
       var x = i * (width + pad);
       var y = 0;
 
-      data.push({x: x, y: y, width: width, height: height, id: i});
+      data.push({ x: x, y: y, width: width, height: height, id: i });
     }
     return data;
   }
 
   _generateArcColorData(limitBin) {
     var data = [];
-    for (var i = 0; i < this._bins; i++){
+    for (var i = 0; i < this._bins; i++) {
       var color;
       if (i < limitBin) {
-        color = this._colorScale( i / (this._bins - 1) );
+        color = this._colorScale(i / (this._bins - 1));
       } else {
         color = this._defaultTimerEmptyFill;
       }
-  
+
       data.push(color);
     }
     return data;
   }
 
   _getTextColor(proc) {
-    if (this._colorState) {
-      return this._colorScale(proc);
-    } else {
-      return this._stateColor;
+    if(!this._config.action_entity){
+      if (this._colorState) {
+        return this._colorScale(proc);
+      } else {
+        return this._stateColor;
+      }
+    }
+    else{
+        var stateObj = this.hass.states[this._config.action_entity];
+        if(stateObj.state == "on")
+          return this._colorScale(proc);
+        else
+          return  "#CACFD2";
     }
   }
 
@@ -342,9 +351,13 @@ class CircularTimerCard extends LitElement {
   }
 
   _toggle_func() {
-    const stateObj = this.hass.states[this._config.entity];
-    const service = stateObj.state === "active" ? "pause" : "start";  
-    this.hass.callService("timer", service, { entity_id: this._config.entity });
+    if (this._config.action_entity) {
+      this.hass.callService("switch", "toggle", { entity_id: this._config.action_entity });
+    } else {
+      const stateObj = this.hass.states[this._config.entity];
+      const service = stateObj.state === "active" ? "pause" : "start";
+      this.hass.callService("timer", service, { entity_id: this._config.entity });
+    }
   }
 
   _cancel_func() {
@@ -363,9 +376,9 @@ class CircularTimerCard extends LitElement {
     };
     this.dispatchEvent(event);
   }
-  
+
   _tap(e) {
-    if(this._mouseIsDownTriggered == false) {
+    if (this._mouseIsDownTriggered == false) {
       setTimeout(() => {
         if (this._doubleClickTriggered == false) {
           if (this._tapAction == "toggle") {
@@ -397,7 +410,7 @@ class CircularTimerCard extends LitElement {
   _mousedown(e) {
     this._mouseIsDown = true;
     setTimeout(() => {
-      if(this._mouseIsDown) {
+      if (this._mouseIsDown) {
         this._mouseIsDownTriggered = true;
         if (this._holdAction == "toggle") {
           this._toggle_func();
@@ -407,14 +420,14 @@ class CircularTimerCard extends LitElement {
           this._cancel_func();
         }
       }
-    }, 1000);    
+    }, 1000);
   }
 
   _mouseup(e) {
     setTimeout(() => {
       this._mouseIsDown = false;
       this._mouseIsDownTriggered = false;
-     }, 100);
+    }, 100);
   }
 
   static get styles() {
