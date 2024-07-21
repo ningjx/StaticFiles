@@ -179,10 +179,10 @@ class CircularTimerCard extends LitElement {
           `)}
         </g>
         <g transform="translate(50,45)">
-          <text id="countdown" text-anchor="middle" dominant-baseline="central" fill=${textColor}>${secondaryInfo}</text>
+          <text id="countdown" text-anchor="middle" dominant-baseline="central" fill=${textColor}>${primaryInfo}</text>
         </g>
         <g transform="translate(50,55)">
-          <text id="timer-name" text-anchor="middle" dominant-baseline="central" fill=${textColor} style="font-size:${this._secondaryInfoSize};">${primaryInfo}</text>
+          <text id="timer-name" text-anchor="middle" dominant-baseline="central" fill=${textColor} style="font-size:${this._secondaryInfoSize};">${secondaryInfo}</text>
         </g>
       </svg>
     `;
@@ -366,7 +366,8 @@ class CircularTimerCard extends LitElement {
   _calculateTimeDifference(lastOnTime) {
     if (!lastOnTime) return "0:0:0";
     const now = new Date();
-    const diff = now - lastOnTime;
+    var diff = now - lastOnTime;
+    if (diff < 0) diff = 0;
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
