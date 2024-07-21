@@ -11,39 +11,10 @@ class CircularTimerCard extends LitElement {
   constructor() {
     super();
 
-    // Defaults
-    this._bins = 60;
-    this._padAngle = 1;
-    this._cornerRadius = 4;
-    this._defaultTimerFill = getComputedStyle(
-      document.documentElement
-    ).getPropertyValue("--primary-color");
-    this._gradientColors = [this._defaultTimerFill, this._defaultTimerFill];
-    this._defaultTimerEmptyFill = "#fdfdfd00";
-    this._secondaryInfoSize;
-    this._layout = "circle";
-
-    this._name = "use_entity_friendly_name";
-    this._icon = "use_entity_icon";
-    this._primaryInfo = "name";
-    this._secondaryInfo = "timer";
-    this._direction = "countup";
-    this._tapAction = "toggle";
-    this._holdAction = "more_info";
-    this._doubleTapAction = "toggle";
-
-    this._colorState = false;
-    this._stateColor = getComputedStyle(
-      document.documentElement
-    ).getPropertyValue("--primary-text-color");
-
-    // To update card every half second
     this._timeUpdater = 1;
     setInterval(() => {
       this._timeUpdater++;
     }, 1000);
-
-    // Event listener bindings (https://developers.home-assistant.io/blog/2023/07/07/action-event-custom-cards/)
 
     this.addEventListener("click", this._tap);
 
@@ -54,11 +25,7 @@ class CircularTimerCard extends LitElement {
     //this.addEventListener("touchstart", this._mousedown);
     //this.addEventListener("mouseup", this._mouseup);
     //this.addEventListener("touchend", this._mouseup);
-
     //this.addEventListener("dblclick", this._double_tap);
-    this.d_sec = 0;
-    this.proc = 0;
-    ////
   }
 
   static get properties() {
@@ -69,11 +36,6 @@ class CircularTimerCard extends LitElement {
   }
 
   setConfig(config) {
-    if (!config.entity) {
-      throw new Error("You need to provide entity!");
-    }
-
-    // Define the action config
     this._actionConfig = {
       entity: config.entity,
       hold_action: {
@@ -82,26 +44,29 @@ class CircularTimerCard extends LitElement {
       },
     };
 
-    if (config.layout) {
-      if (config.layout === "minimal") {
-        this._layout = "minimal";
-      } else if (config.layout === "circle") {
-        this._layout = "circle";
-      }
-    }
-
-    if (config.bins) {
-      this._bins = config.bins;
-    }
+    this._config = config;
+    this._name = config.name || "use_entity_friendly_name";
+    this._icon = config.icon || "mdi:timer";
+    this._bins = config.bins || 60;
     this._seqmentSize = 360 / this._bins;
-
-    if (config.pad_angle) {
-      this._padAngle = config.pad_angle;
-    }
-
-    if (config.corner_radius) {
-      this._cornerRadius = config.corner_radius;
-    }
+    this._primaryInfo = config.primary_info || "timer";
+    this._secondaryInfo = config.secondary_info || "name";
+    this._secondaryInfoSize = config.secondary_info_size || "12px";
+    this._layout = config.layout || "circle";
+    this._padAngle = config.pad_angle || 1;
+    this._cornerRadius = config.corner_radius || 4;
+    this._colorState = config.color_state || false;
+    this._stateColor = getComputedStyle(
+      document.documentElement
+    ).getPropertyValue("--primary-text-color");
+    this._defaultTimerEmptyFill = config.empty_bar_color || "#fdfdfd00";
+    this._tapAction = config.tap_action || "toggle";
+    this._holdAction = config.hold_action || "more_info";
+    this._doubleTapAction = config.double_tap_action || "toggle";
+    this._defaultTimerFill = getComputedStyle(
+      document.documentElement
+    ).getPropertyValue("--primary-color");
+    this._gradientColors = [this._defaultTimerFill, this._defaultTimerFill];
 
     if (config.color) {
       if (config.color.length === 1) {
@@ -109,14 +74,6 @@ class CircularTimerCard extends LitElement {
       } else {
         this._gradientColors = config.color;
       }
-    }
-
-    if (config.color_state) {
-      this._colorState = config.color_state;
-    }
-
-    if (config.empty_bar_color) {
-      this._defaultTimerEmptyFill = config.empty_bar_color;
     }
 
     if (config.secondary_info_size) {
@@ -127,38 +84,6 @@ class CircularTimerCard extends LitElement {
       } else {
         this._secondaryInfoSize = "50%";
       }
-    }
-
-    if (config.name) {
-      this._name = config.name;
-    }
-
-    if (config.icon) {
-      this._icon = config.icon;
-    }
-
-    if (config.primary_info) {
-      this._primaryInfo = config.primary_info;
-    }
-
-    if (config.secondary_info) {
-      this._secondaryInfo = config.secondary_info;
-    }
-
-    if (config.direction) {
-      this._direction = config.direction;
-    }
-
-    if (config.tap_action) {
-      this._tapAction = config.tap_action;
-    }
-
-    if (config.hold_action) {
-      this._holdAction = config.hold_action;
-    }
-
-    if (config.double_tap_action) {
-      this._doubleTapAction = config.double_tap_action;
     }
 
     this._colorScale = d3.scaleSequential(
@@ -179,157 +104,88 @@ class CircularTimerCard extends LitElement {
 
     this._arcData = this._generateArcData();
     this._barData = this._generateBarData();
-
-    this._config = config;
   }
-
   render() {
-    if (!this.hass) {
-      throw new Error("hass not exist");
-    }
-
-    if (!this._config) {
-      throw new Error("config not exist");
-    }
+    if (!this.hass || !this._config) return html`<ha-card>Loading...</ha-card>`;
 
     this._stateObj = this.hass.states[this._config.entity];
     if (!this._stateObj) {
-      return html` <ha-card>Unknown entity: ${this._config.entity}</ha-card> `;
+      return html`<ha-card>Unknown entity: ${this._config.entity}</ha-card>`;
     }
 
-    if (this._name == "use_entity_friendly_name") {
+    if (this._name === "use_entity_friendly_name") {
       this._name = this._stateObj.attributes.friendly_name;
     }
 
-    var icon;
-    var icon_style;
-    if (this._icon == "use_entity_icon") {
-      console.log("iconiconicon", this._stateObj.attributes.icon);
-      if (this._stateObj.attributes.icon) icon = this._stateObj.attributes.icon;
-      else icon = "mdi:timer";
-    } else if (this._icon == "none") {
-      icon = "";
-      icon_style = "display:none;";
-    } else {
-      icon = this._icon;
+    let icon = this._icon === "use_entity_icon" ? this._stateObj.attributes.icon : this._icon;
+    let iconStyle = this._icon === "none" ? "display:none;" : "";
+
+    let dSec = 0;
+    let proc = 0;
+
+    if (this._stateObj.state === "on" && !this._isFetchingHistory) {
+      this._fetchHistory(this._config.entity);
     }
 
-    if (this._stateObj.state === "on") {
-      this._fetchHistory(this._config.entity).then((data) => {
-        var onTime = this._getEntityOnTime(data);
-        var timeGap = this._calculateTimeDifference(onTime).split(":");
-        this.d_sec = +timeGap[0] * 60 * 60 + +timeGap[1] * 60 + +timeGap[2];
-        this.proc = +timeGap[2] / this._bins;
-      });
-    } else {
-      //关闭开关后计时器归零
-      this.proc = this.d_sec = 0;
+    if (this._stateObj.state === "on" && this._history) {
+      const onTime = this._getEntityOnTime(this._history);
+      const timeGap = this._calculateTimeDifference(onTime).split(':');
+      dSec = +timeGap[0] * 60 * 60 + +timeGap[1] * 60 + +timeGap[2];
+      proc = +timeGap[2] / this._bins;
     }
 
-    var limitBin = Math.floor(this._bins * this.proc);
-    var colorData = this._generateArcColorData(limitBin);
-    var textColor = this._getTextColor(this.proc);
+    const limitBin = Math.floor(this._bins * proc);
+    const colorData = this._generateArcColorData(limitBin);
+    const textColor = this._getTextColor(proc);
 
-    var display_d_sec = this._getTimeString(this.d_sec);
-    var primary_info;
-    if (this._primaryInfo == "none") {
-      primary_info = "";
-    } else if (this._primaryInfo == "timer") {
-      primary_info = display_d_sec;
-    } else {
-      primary_info = this._name;
-    }
+    const displayDSec = this._getTimeString(dSec);
+    const primaryInfo = this._primaryInfo === "timer" ? displayDSec : this._name;
+    const secondaryInfo = this._secondaryInfo === "name" ? this._name : displayDSec;
 
-    var secondary_info;
-    if (this._secondaryInfo == "none") {
-      secondary_info = "";
-    } else if (this._secondaryInfo == "name") {
-      secondary_info = this._name;
-    } else {
-      secondary_info = display_d_sec;
-    }
+    return html`
+      <ha-card>
+        ${this._layout === "minimal" ? this._renderMinimalLayout(icon, iconStyle, textColor, primaryInfo, secondaryInfo, limitBin, colorData) : this._renderDefaultLayout(textColor, primaryInfo, secondaryInfo, limitBin, colorData)}
+      </ha-card>
+    `;
+  }
 
-    if (this._layout === "minimal") {
-      return html`
-        <ha-card>
-          <div class="header">
-            <div class="icon" style="${icon_style}">
-              <ha-icon
-                icon="${icon}"
-                style="${`color: ${textColor};"`};"
-              ></ha-icon>
-            </div>
-            <div class="info">
-              <span class="primary" style="${`color: ${textColor};"`};"
-                >${primary_info}</span
-              >
-              <span
-                class="secondary"
-                style="font-size:${this
-                  ._secondaryInfoSize};color: ${textColor};"
-                >${secondary_info}</span
-              >
-            </div>
-          </div>
-          <svg viewBox="0 0 100 10.2">
-            <g transform="translate(0,0)">
-              ${repeat(
-                this._barData,
-                (d) => d.id,
-                (d, index) =>
-                  svg`<rect x=${d.x} y=${d.y} width=${d.width} height=${
-                    d.height
-                  } rx="1" fill=${this._getBinColor(
-                    colorData,
-                    index,
-                    limitBin
-                  )} />`
-              )}
-            </g>
-          </svg>
-        </ha-card>
-      `;
-    } else {
-      return html`
-        <ha-card>
-          <svg viewBox="0 0 100 100">
-            <g transform="translate(50,50)">
-              ${repeat(
-                this._arcData,
-                (d) => d.id,
-                (d, index) =>
-                  svg`<path class="arc" d=${d.arc} fill=${this._getBinColor(
-                    colorData,
-                    index,
-                    limitBin
-                  )} />`
-              )}
-            </g>
-            <g transform="translate(50,45)">
-              <text
-                id="countdown"
-                text-anchor="middle"
-                dominant-baseline="central"
-                fill=${textColor}
-              >
-                ${secondary_info}
-              </text>
-            </g>
-            <g transform="translate(50,55)">
-              <text
-                id="timer-name"
-                text-anchor="middle"
-                dominant-baseline="central"
-                fill=${textColor}
-                style="font-size:${this._secondaryInfoSize};"
-              >
-                ${primary_info}
-              </text>
-            </g>
-          </svg>
-        </ha-card>
-      `;
-    }
+  _renderMinimalLayout(icon, iconStyle, textColor, primaryInfo, secondaryInfo, limitBin, colorData) {
+    return html`
+      <div class="header">
+        <div class="icon" style="${iconStyle}">
+          <ha-icon icon="${icon}" style="color: ${textColor};"></ha-icon>
+        </div>
+        <div class="info">
+          <span class="primary" style="color: ${textColor};">${primaryInfo}</span>
+          <span class="secondary" style="font-size:${this._secondaryInfoSize};color: ${textColor};">${secondaryInfo}</span>
+        </div>
+      </div>
+      <svg viewBox="0 0 100 10.2">
+        <g transform="translate(0,0)">
+          ${repeat(this._barData, d => d.id, (d, index) => svg`
+            <rect x=${d.x} y=${d.y} width=${d.width} height=${d.height} rx="1" fill=${this._getBinColor(colorData, index, limitBin)} />
+          `)}
+        </g>
+      </svg>
+    `;
+  }
+
+  _renderDefaultLayout(textColor, primaryInfo, secondaryInfo, limitBin, colorData) {
+    return html`
+      <svg viewBox="0 0 100 100">
+        <g transform="translate(50,50)">
+          ${repeat(this._arcData, d => d.id, (d, index) => svg`
+            <path class="arc" d=${d.arc} fill=${this._getBinColor(colorData, index, limitBin)} />
+          `)}
+        </g>
+        <g transform="translate(50,45)">
+          <text id="countdown" text-anchor="middle" dominant-baseline="central" fill=${textColor}>${secondaryInfo}</text>
+        </g>
+        <g transform="translate(50,55)">
+          <text id="timer-name" text-anchor="middle" dominant-baseline="central" fill=${textColor} style="font-size:${this._secondaryInfoSize};">${primaryInfo}</text>
+        </g>
+      </svg>
+    `;
   }
 
   _generateArcData() {
@@ -485,33 +341,38 @@ class CircularTimerCard extends LitElement {
     }, 100);
   }
 
-  async _fetchHistory(entity) {
-    const response = await fetch(
-      `/api/history/period?filter_entity_id=${entity}`,
-      {
-        headers: {
-          Authorization: `Bearer ${this._config.token}`,
-        },
-      }
-    );
-    return response.json();
+  _fetchHistory(entity) {
+    this._isFetchingHistory = true;
+    fetch(`/api/history/period?filter_entity_id=${entity}`, {
+      headers: { Authorization: `Bearer ${this._config.token}` },
+    })
+      .then(response => response.json())
+      .then(data => {
+        this._history = data;
+        this._isFetchingHistory = false;
+        this.requestUpdate();
+      })
+      .catch(error => {
+        console.error('Error fetching history:', error);
+        this._isFetchingHistory = false;
+      });
   }
+
   _getEntityOnTime(history) {
-    var data = history[0];
-    if (data[data.length - 1].state === "on") {
-      return new Date(data[data.length - 1].last_changed);
-    } else return null;
+    const data = history[0];
+    return data[data.length - 1].state === "on" ? new Date(data[data.length - 1].last_changed) : null;
   }
+
   _calculateTimeDifference(lastOnTime) {
     if (!lastOnTime) return "0:0:0";
     const now = new Date();
     const diff = now - lastOnTime;
-    if (diff < 0) diff = 0;
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     return `${hours}:${minutes}:${seconds}`;
   }
+
 
   static get styles() {
     return css`
